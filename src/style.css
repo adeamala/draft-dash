@@ -273,6 +273,22 @@ button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
   box-shadow: 0 0 46px -6px var(--c), inset 0 0 40px -16px var(--c);
 }
 
+/* Ban rounds: the rule flips, so the screen has to say so loudly. */
+.rule-flip { color: var(--muted); margin: 0 0 4px; }
+.rule-flip b { color: var(--wrong); text-transform: uppercase; letter-spacing: 0.1em; }
+/* Same box in every round, so the cards never jump when a ban round starts. */
+#pick-label { display: inline-block; padding: 4px 18px; margin-bottom: 18px; transform: skewX(-10deg); }
+.play.ban #pick-label {
+  color: #fff;
+  background: var(--wrong);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  box-shadow: 0 0 30px -4px var(--wrong);
+}
+#pick-label.show { animation: slam 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes slam { from { transform: skewX(-10deg) scale(1.8); opacity: 0; } }
+.play.ban .options { outline: 2px dashed var(--wrong); outline-offset: 8px; border-radius: 20px; }
+
 /* Particle burst on a correct pick. */
 .burst { position: fixed; z-index: 5; width: 0; height: 0; pointer-events: none; }
 .burst i {

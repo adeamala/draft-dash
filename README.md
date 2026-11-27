@@ -4,6 +4,10 @@
 
 **Play it:** https://adeamala.github.io/draft-dash/
 
+| Counter-pick with combo | Ban phase flips the rule |
+|---|---|
+| ![Combo](docs/gallery/02-combo.jpg) | ![Ban phase](docs/gallery/03-ban-phase.jpg) |
+
 Drafting is the strategy layer of esports that casual fans rarely see. Draft Dash turns it into a one-click reflex game: the enemy locks a hero, you pick the counter before the timer runs out.
 
 ## How to play
@@ -11,7 +15,8 @@ Drafting is the strategy layer of esports that casual fans rarely see. Draft Das
 1. The enemy reveals a hero.
 2. Click the one card (of three) that beats it. Blaze beats Frost, Frost beats Volt, Volt beats Blaze.
 3. Faster picks score more; after 3 correct in a row, picks score x2; after 6, x3.
-4. A wrong pick or a timeout costs one of 3 lives. The run ends after 90 seconds or 3 lost lives.
+4. **Ban rounds** (round 7, then every 4th round) flip the rule, like the pick/ban rhythm of a real draft: pick the hero the enemy *beats*. The screen turns red so you can't miss it.
+5. A wrong pick or a timeout costs one of 3 lives. The run ends after 90 seconds or 3 lost lives.
 
 Shortcuts: `1` `2` `3` pick a card, `F` toggles fullscreen, `M` toggles sound (also as buttons on the start screen).
 

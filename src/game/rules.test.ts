@@ -5,6 +5,8 @@ import {
   answer,
   beats,
   comboMultiplier,
+  isBanRound,
+  isCorrectAnswer,
   isCorrectPick,
   isOver,
   makeRound,
@@ -67,6 +69,30 @@ describe('scoring', () => {
     expect(roundPoints(1500, 0)).toBe(250)
     expect(roundPoints(1500, 3)).toBe(500)
     expect(roundPoints(-50, 0)).toBe(100)
+  })
+})
+
+describe('ban rounds', () => {
+  it('start at round 7 and repeat every 4 rounds', () => {
+    const bans = Array.from({ length: 20 }, (_, i) => i + 1).filter(isBanRound)
+    expect(bans).toEqual([7, 11, 15, 19])
+  })
+
+  it('flip the rule: the right answer is the hero the enemy beats', () => {
+    const ember = HEROES.find((h) => h.id === 'ember')! // blaze
+    const rime = HEROES.find((h) => h.id === 'rime')! // frost, loses to blaze
+    const spark = HEROES.find((h) => h.id === 'spark')! // volt, beats blaze
+    expect(isCorrectAnswer(1, ember, spark)).toBe(true)
+    expect(isCorrectAnswer(1, ember, rime)).toBe(false)
+    expect(isCorrectAnswer(7, ember, rime)).toBe(true)
+    expect(isCorrectAnswer(7, ember, spark)).toBe(false)
+  })
+
+  it('still have exactly one right answer per round', () => {
+    for (let i = 0; i < 300; i++) {
+      const { enemy, options } = makeRound()
+      expect(options.filter((o) => isCorrectAnswer(7, enemy, o))).toHaveLength(1)
+    }
   })
 })
 

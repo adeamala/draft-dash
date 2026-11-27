@@ -28,10 +28,19 @@ export const SESSION_MS = 90_000
 export const STARTING_LIVES = 3
 const BASE_POINTS = 100
 const FAST_ROUND_FROM = 9
+const BAN_FROM_ROUND = 7
+const BAN_EVERY = 4
 
 export const beats = (attacker: Element, defender: Element): boolean => BEATS[attacker] === defender
 
 export const isCorrectPick = (enemy: Hero, pick: Hero): boolean => beats(pick.element, enemy.element)
+
+/** Ban rounds flip the rule, like the pick/ban rhythm of a real draft: rounds 7, 11, 15, ... */
+export const isBanRound = (round: number): boolean => round >= BAN_FROM_ROUND && (round - BAN_FROM_ROUND) % BAN_EVERY === 0
+
+/** In a ban round the right answer is the hero the enemy beats; otherwise the hero that beats the enemy. */
+export const isCorrectAnswer = (round: number, enemy: Hero, pick: Hero): boolean =>
+  isBanRound(round) ? beats(enemy.element, pick.element) : isCorrectPick(enemy, pick)
 
 /** Time allowed to answer a round; round numbers start at 1. */
 export const roundTimeMs = (round: number): number => (round < FAST_ROUND_FROM ? 3000 : 2000)

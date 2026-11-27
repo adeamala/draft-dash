@@ -6,7 +6,8 @@ import {
   SESSION_MS,
   answer,
   comboMultiplier,
-  isCorrectPick,
+  isBanRound,
+  isCorrectAnswer,
   isOver,
   makeRound,
   newSession,
@@ -131,6 +132,7 @@ function showAttract() {
       ${kineticTitle(['Draft', 'Dash'])}
       <p class="tagline">${SESSION_MS / 1000} seconds to out-draft the enemy coach.</p>
       ${cycleRow()}
+      <p class="rule-flip"><b>Ban rounds</b> flip it: pick the hero the enemy beats.</p>
       <button class="primary" id="start">Click to play</button>
       <section class="top">
         <h2>Today's top 5</h2>
@@ -178,7 +180,7 @@ function startGame() {
       <div id="enemy-slot"></div>
       <div class="bar"><div id="bar"></div></div>
       ${cycleRow().replace('class="cycle"', 'class="cycle small"')}
-      <p class="label">Your counter-pick <small>(click or press 1, 2, 3)</small></p>
+      <p class="label" id="pick-label"></p>
       <div id="options" class="options"></div>
       <div id="callout" class="callout" aria-live="polite"></div>
     </main>`,
@@ -206,6 +208,12 @@ function startGame() {
     round = makeRound()
     roundStart = performance.now()
     locked = false
+    const ban = isBanRound(session.round)
+    $('.play').classList.toggle('ban', ban)
+    $('#pick-label').textContent = ban
+      ? 'Ban phase · pick the hero the enemy beats'
+      : 'Your counter-pick · click or press 1, 2, 3'
+    if (ban) pulse($('#pick-label'), 'show')
     // New elements each round, so the lock-in and deal-in animations replay.
     $('#enemy-slot').innerHTML = `<div id="enemy" class="card enemy el-${round.enemy.element}">${heroCard(round.enemy)}</div>`
     $('#options').innerHTML = round.options
@@ -219,12 +227,13 @@ function startGame() {
     locked = true
     const before = session
     const msLeft = roundTimeMs(session.round) - (performance.now() - roundStart)
-    const correct = pickIndex !== null && isCorrectPick(round.enemy, round.options[pickIndex])
+    const isRight = (h: Hero) => isCorrectAnswer(before.round, round.enemy, h)
+    const correct = pickIndex !== null && isRight(round.options[pickIndex])
     session = answer(session, correct, msLeft)
 
     const buttons = app.querySelectorAll<HTMLButtonElement>('#options button')
     round.options.forEach((h, i) => {
-      if (isCorrectPick(round.enemy, h)) buttons[i].classList.add('right')
+      if (isRight(h)) buttons[i].classList.add('right')
       else if (i === pickIndex) buttons[i].classList.add('wrong')
     })
     updateHud()
