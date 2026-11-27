@@ -2,7 +2,7 @@
 
 **90 seconds to out-draft the enemy coach.** A booth mini-game for the Cloud9 x JetBrains "Sky's The Limit" Hackathon 2026 (Category 3: Event Mini Game).
 
-**Play it:** https://adeamala.github.io/draft-dash/ · **Demo video:** https://youtu.be/Fa_rnqwnufI
+**Play it:** https://adeamala.github.io/draft-dash/ · **Demo video:** https://youtu.be/jk-HDgJzL2w
 
 ![Draft Dash gameplay: passing today's #1](docs/gallery/gameplay.gif)
 
