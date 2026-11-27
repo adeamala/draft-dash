@@ -4,11 +4,13 @@ Draft Dash is a booth mini-game for the Cloud9 x JetBrains hackathon (Category 3
 
 ## Stack
 - TypeScript + Vite, no UI framework. Vitest for tests.
-- No runtime dependencies. Do not add one without a clear reason.
+- The only runtime dependency is the Chakra Petch font (`@fontsource`, OFL), bundled so the booth works offline. Do not add others without a clear reason.
+- Animations are CSS-only (transform/opacity) and must stay off under `prefers-reduced-motion`.
 
 ## Structure
 - `src/game/*.ts`: pure game logic (rules, scoring, leaderboard storage). No DOM, no timers. Each of these has a `*.test.ts` next to it.
 - `src/game/sound.ts`: Web Audio sound effects, no audio files (browser-only, not unit tested).
+- `src/sigils.ts`: original inline-SVG element icons.
 - `src/main.ts`: screens (attract → play → result, plus `#leaderboard`) and input handling.
 - `src/style.css`: all styles; colors live in the `:root` variables.
 

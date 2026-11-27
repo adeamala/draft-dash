@@ -27,7 +27,8 @@ npm run build   # production build in dist/
 ## Built with
 
 - JetBrains WebStorm (and Junie for selected features)
-- TypeScript + Vite, no framework
+- TypeScript + Vite, no framework; CSS-only animations (off when the OS asks for reduced motion)
+- Chakra Petch font (OFL) bundled with the build, so it works offline
 - `localStorage` for an offline daily leaderboard; a second window updates through the browser `storage` event
 
 ## Booth setup

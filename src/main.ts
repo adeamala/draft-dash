@@ -1,3 +1,6 @@
+import '@fontsource/chakra-petch/500.css'
+import '@fontsource/chakra-petch/700.css'
+import '@fontsource/chakra-petch/700-italic.css'
 import './style.css'
 import {
   SESSION_MS,
@@ -8,18 +11,20 @@ import {
   makeRound,
   newSession,
   roundTimeMs,
-  type Element,
   type Hero,
   type Round,
   type Session,
 } from './game/rules.ts'
 import { loadScores, saveScore } from './game/leaderboard.ts'
 import { isMuted, sfx, toggleMute } from './game/sound.ts'
+import { cycleRow, sigil } from './sigils.ts'
 
 const IDLE_MS = 15_000
 const FEEDBACK_MS = 350
-const ICON: Record<Element, string> = { blaze: '🔥', frost: '❄️', volt: '⚡' }
+const COUNT_UP_MS = 900
+const LOW_TIME_RATIO = 0.35
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 document.addEventListener('contextmenu', (e) => e.preventDefault())
@@ -63,27 +68,39 @@ const later = (signal: AbortSignal, ms: number, fn: () => void) => {
 
 const $ = <T extends HTMLElement>(selector: string) => app.querySelector<T>(selector)!
 
+/** Restart a one-shot CSS animation class on an element. */
+function pulse(el: HTMLElement, cls: string) {
+  el.classList.remove(cls)
+  void el.offsetWidth // force a reflow so the animation runs again
+  el.classList.add(cls)
+}
+
 function scoreList(limit: number): string {
   const scores = loadScores().slice(0, limit)
   if (!scores.length) return '<p class="muted">No scores yet today. Be the first!</p>'
   // Initials are validated to A-Z/? by loadScores, so they are safe to inline.
-  return `<ol class="scores">${scores.map((e) => `<li><span>${e.initials}</span><b>${e.score}</b></li>`).join('')}</ol>`
+  return `<ol class="scores">${scores
+    .map((e, i) => `<li style="--i:${i}"><span>${e.initials}</span><b>${e.score}</b></li>`)
+    .join('')}</ol>`
 }
 
 const heroCard = (h: Hero) =>
-  `<span class="icon" aria-hidden="true">${ICON[h.element]}</span><span class="name">${h.name}</span><span class="el">${h.element}</span>`
+  `<span class="icon">${sigil(h.element)}</span><span class="name">${h.name}</span><span class="el">${h.element}</span>`
 
 function showAttract() {
   const signal = enterScreen(
     'attract',
     `
     <main class="screen attract">
-      <h1>Draft Dash</h1>
+      <p class="kicker">Booth challenge</p>
+      <h1 class="title">Draft<span>Dash</span></h1>
       <p class="tagline">${SESSION_MS / 1000} seconds to out-draft the enemy coach.</p>
-      <p class="cycle">🔥 Blaze beats ❄️ Frost beats ⚡ Volt beats 🔥 Blaze</p>
+      ${cycleRow()}
       <button class="primary" id="start">Click to play</button>
-      <h2>Today's top 5</h2>
-      ${scoreList(5)}
+      <section class="top">
+        <h2>Today's top 5</h2>
+        ${scoreList(5)}
+      </section>
       <nav class="toggles">
         <button id="fullscreen">⛶ Fullscreen (F)</button>
         <button id="mute">${muteLabel()}</button>
@@ -117,17 +134,18 @@ function startGame() {
     `
     <main class="screen play">
       <header class="hud">
-        <span>⏱ <b id="time"></b>s</span>
-        <span>Score <b id="score">0</b></span>
-        <span>Combo <b id="combo">x1</b></span>
-        <span id="lives" aria-label="Lives"></span>
+        <div class="hud-cell"><small>Time</small><b id="time"></b></div>
+        <div class="hud-cell"><small>Score</small><b id="score">0</b></div>
+        <div class="hud-cell"><small>Combo</small><b id="combo">x1</b></div>
+        <div class="hud-cell"><small>Lives</small><b id="lives" aria-label="Lives"></b></div>
       </header>
       <p class="label">Enemy locks in</p>
-      <div id="enemy" class="card enemy"></div>
+      <div id="enemy-slot"></div>
       <div class="bar"><div id="bar"></div></div>
-      <p class="cycle">🔥 beats ❄️ · ❄️ beats ⚡ · ⚡ beats 🔥</p>
+      ${cycleRow().replace('class="cycle"', 'class="cycle small"')}
       <p class="label">Your counter-pick <small>(click or press 1, 2, 3)</small></p>
       <div id="options" class="options"></div>
+      <div id="callout" class="callout" aria-live="polite"></div>
     </main>`,
   )
 
@@ -142,13 +160,19 @@ function startGame() {
     $('#lives').textContent = '♥'.repeat(Math.max(0, session.lives))
   }
 
+  const callout = (text: string, kind: 'good' | 'combo' | 'bad') => {
+    const el = $('#callout')
+    el.textContent = text
+    el.className = `callout ${kind}`
+    pulse(el, 'show')
+  }
+
   const nextRound = () => {
     round = makeRound()
     roundStart = performance.now()
     locked = false
-    const enemy = $('#enemy')
-    enemy.className = `card enemy el-${round.enemy.element}`
-    enemy.innerHTML = heroCard(round.enemy)
+    // New elements each round, so the lock-in and deal-in animations replay.
+    $('#enemy-slot').innerHTML = `<div id="enemy" class="card enemy el-${round.enemy.element}">${heroCard(round.enemy)}</div>`
     $('#options').innerHTML = round.options
       .map((h, i) => `<button class="card el-${h.element}" data-i="${i}"><kbd>${i + 1}</kbd>${heroCard(h)}</button>`)
       .join('')
@@ -158,17 +182,34 @@ function startGame() {
   const resolve = (pickIndex: number | null) => {
     if (locked) return
     locked = true
+    const before = session
     const msLeft = roundTimeMs(session.round) - (performance.now() - roundStart)
     const correct = pickIndex !== null && isCorrectPick(round.enemy, round.options[pickIndex])
     session = answer(session, correct, msLeft)
-    if (correct) sfx.right()
-    else sfx.wrong()
+
     const buttons = app.querySelectorAll<HTMLButtonElement>('#options button')
     round.options.forEach((h, i) => {
       if (isCorrectPick(round.enemy, h)) buttons[i].classList.add('right')
       else if (i === pickIndex) buttons[i].classList.add('wrong')
     })
     updateHud()
+    pulse($('.play'), correct ? 'hit' : 'miss')
+
+    if (correct) {
+      sfx.right()
+      pulse($('#score'), 'bump')
+      const multiplier = comboMultiplier(session.streak)
+      if (multiplier > comboMultiplier(before.streak)) {
+        callout(`Combo x${multiplier}!`, 'combo')
+        pulse($('#combo'), 'bump')
+      } else {
+        callout(`+${session.score - before.score}`, 'good')
+      }
+    } else {
+      sfx.wrong()
+      pulse($('#lives'), 'bump')
+      callout(pickIndex === null ? 'Too slow' : 'Miss', 'bad')
+    }
     later(signal, FEEDBACK_MS, () => (isOver(session, performance.now()) ? showResult(session.score) : nextRound()))
   }
 
@@ -196,7 +237,10 @@ function startGame() {
     if (!locked) {
       const limit = roundTimeMs(session.round)
       const elapsed = now - roundStart
-      $('#bar').style.width = `${Math.max(0, 1 - elapsed / limit) * 100}%`
+      const ratio = Math.max(0, 1 - elapsed / limit)
+      const bar = $('#bar')
+      bar.style.width = `${ratio * 100}%`
+      bar.classList.toggle('low', ratio < LOW_TIME_RATIO)
       if (elapsed >= limit) resolve(null)
     }
     requestAnimationFrame(tick)
@@ -204,6 +248,22 @@ function startGame() {
 
   nextRound()
   requestAnimationFrame(tick)
+}
+
+/** Animate a number from 0 up to `to`, unless the player prefers reduced motion. */
+function countUp(el: HTMLElement, to: number, signal: AbortSignal) {
+  if (reducedMotion.matches) {
+    el.textContent = String(to)
+    return
+  }
+  const start = performance.now()
+  const step = (now: number) => {
+    if (signal.aborted) return
+    const p = Math.min(1, (now - start) / COUNT_UP_MS)
+    el.textContent = String(Math.round(to * (1 - (1 - p) ** 3)))
+    if (p < 1) requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
 }
 
 function showResult(score: number) {
@@ -214,9 +274,9 @@ function showResult(score: number) {
     'result',
     `
     <main class="screen result">
-      <p class="label">Final score</p>
-      <h1>${score}</h1>
-      <p>Enter your initials</p>
+      <p class="kicker">Final score</p>
+      <h1 class="score-big" id="final">0</h1>
+      <p class="label">Enter your initials</p>
       <div class="initials">
         ${letters
           .map(
@@ -231,10 +291,13 @@ function showResult(score: number) {
       <button class="primary" id="save">Save score</button>
     </main>`,
   )
+  countUp($('#final'), score, signal)
 
   const setLetter = (i: number, letter: string) => {
     letters[i] = letter
-    $(`#l${i}`).textContent = letter
+    const el = $(`#l${i}`)
+    el.textContent = letter
+    pulse(el, 'bump')
   }
   const finish = (initials: string) => {
     saveScore({ initials, score, at: Date.now() })
@@ -282,7 +345,14 @@ function showResult(score: number) {
 
 // Second screen for the booth: open <url>#leaderboard on another monitor.
 function showLeaderboard() {
-  enterScreen('board', `<main class="screen board"><h1>Draft Dash · Today's Top 10</h1>${scoreList(10)}</main>`)
+  enterScreen(
+    'board',
+    `<main class="screen board">
+      <p class="kicker">Draft Dash</p>
+      <h1 class="title">Today's Top 10</h1>
+      ${scoreList(10)}
+    </main>`,
+  )
 }
 
 if (location.hash === '#leaderboard') {
