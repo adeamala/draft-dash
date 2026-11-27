@@ -34,3 +34,6 @@ tmp
 *.njsproj
 *.sln
 *.sw?
+
+# Locally rendered demo videos (uploaded to YouTube, not committed)
+video/

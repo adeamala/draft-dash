@@ -9,6 +9,7 @@ Draft Dash is a booth mini-game for the Cloud9 x JetBrains hackathon (Category 3
 
 ## Structure
 - `src/game/*.ts`: pure game logic (rules, scoring, leaderboard storage). No DOM, no timers. Each of these has a `*.test.ts` next to it.
+- `src/game/stats.ts`: skill stats for the result screen (average decision time, accuracy, best streak).
 - `src/game/sound.ts`: Web Audio sound effects, no audio files (browser-only, not unit tested).
 - `src/sigils.ts`: original inline-SVG element icons.
 - `src/main.ts`: screens (attract → play → result, plus `#leaderboard`) and input handling.

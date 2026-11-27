@@ -49,6 +49,7 @@ For the event, run `npm run build && npm run preview` once; the built game then 
 - [x] Screens: attract → play → result (3-letter initials, mouse or keyboard) → back to attract
 - [x] Leaderboard window (`#leaderboard`) synced offline, daily reset (`src/game/leaderboard.ts`)
 - [x] Booth mode: 15 s idle on the result screen saves as `???` and returns to attract; no context menu
+- [x] Ban rounds and skill stats (average decision time, accuracy, best streak) on the score screen
 - [x] Fullscreen toggle
 - [x] Sound effects synthesized with the Web Audio API, with mute (`src/game/sound.ts`)
 

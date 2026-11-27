@@ -17,6 +17,7 @@ import {
   type Session,
 } from './game/rules.ts'
 import { loadScores, saveScore } from './game/leaderboard.ts'
+import { summarize, type Pick, type Summary } from './game/stats.ts'
 import { isMuted, sfx, toggleMute } from './game/sound.ts'
 import { cycleRow, sigil } from './sigils.ts'
 
@@ -187,6 +188,8 @@ function startGame() {
   )
 
   let session: Session = newSession(performance.now())
+  const picks: Pick[] = []
+  const finish = () => showResult(session.score, summarize(picks))
   let round: Round
   let roundStart = 0
   let locked = false
@@ -229,6 +232,7 @@ function startGame() {
     const msLeft = roundTimeMs(session.round) - (performance.now() - roundStart)
     const isRight = (h: Hero) => isCorrectAnswer(before.round, round.enemy, h)
     const correct = pickIndex !== null && isRight(round.options[pickIndex])
+    picks.push({ ms: pickIndex === null ? null : performance.now() - roundStart, correct })
     session = answer(session, correct, msLeft)
 
     const buttons = app.querySelectorAll<HTMLButtonElement>('#options button')
@@ -255,7 +259,7 @@ function startGame() {
       pulse($('#lives'), 'bump')
       callout(pickIndex === null ? 'Too slow' : 'Miss', 'bad')
     }
-    later(signal, FEEDBACK_MS, () => (isOver(session, performance.now()) ? showResult(session.score) : nextRound()))
+    later(signal, FEEDBACK_MS, () => (isOver(session, performance.now()) ? finish() : nextRound()))
   }
 
   $('#options').addEventListener(
@@ -289,7 +293,7 @@ function startGame() {
   const tick = (now: number) => {
     if (signal.aborted) return
     const timeLeft = SESSION_MS - (now - session.startedAt)
-    if (timeLeft <= 0) return showResult(session.score)
+    if (timeLeft <= 0) return finish()
     $('#time').textContent = String(Math.ceil(timeLeft / 1000))
     if (!locked) {
       const limit = roundTimeMs(session.round)
@@ -323,7 +327,14 @@ function countUp(el: HTMLElement, to: number, signal: AbortSignal) {
   requestAnimationFrame(step)
 }
 
-function showResult(score: number) {
+const statsLine = (s: Summary) =>
+  [
+    `Avg pick ${s.avgPickMs === null ? '—' : `${(s.avgPickMs / 1000).toFixed(2)}s`}`,
+    `Accuracy ${s.accuracy}%`,
+    `Best streak ${s.bestStreak}`,
+  ].join(' · ')
+
+function showResult(score: number, stats: Summary) {
   const letters = ['A', 'A', 'A']
   let cursor = 0
   sfx.gameOver()
@@ -334,6 +345,7 @@ function showResult(score: number) {
     <main class="screen result">
       <p class="kicker">Final score</p>
       <h1 class="score-big" id="final">0</h1>
+      <p class="stats">${statsLine(stats)}</p>
       <p class="label">Enter your initials</p>
       <div class="initials">
         ${letters
