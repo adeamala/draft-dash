@@ -54,7 +54,31 @@ body {
 @keyframes drift { to { transform: translate(12vmax, 8vmax) scale(1.15); } }
 
 /* ---------- Shared ---------- */
-.screen { width: min(1000px, 94vw); text-align: center; padding: 24px 0; animation: screen-in 0.45s ease-out; }
+.screen { position: relative; z-index: 1; width: min(1000px, 94vw); text-align: center; padding: 24px 0; animation: screen-in 0.45s ease-out; }
+
+/* Broadcast texture: film grain and faint scanlines over everything. */
+body::before,
+body::after { content: ''; position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+body::before { background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px); }
+body::after {
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Diagonal wipe between screens. */
+.wipe {
+  position: fixed;
+  inset: 0 -25vw;
+  z-index: 20;
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  transform: translateX(-140%) skewX(-18deg);
+}
+.wipe.go { animation: wipe 0.6s cubic-bezier(0.7, 0, 0.3, 1); }
+@keyframes wipe {
+  from { transform: translateX(-140%) skewX(-18deg); }
+  to { transform: translateX(140%) skewX(-18deg); }
+}
 @keyframes screen-in { from { opacity: 0; transform: translateY(16px); } }
 
 h1, h2 { margin: 0.2em 0; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -82,15 +106,62 @@ button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
   line-height: 0.9;
   font-weight: 700;
   font-style: italic;
-  background: linear-gradient(100deg, #fff 30%, var(--accent) 45%, #fff 60%) 0 0 / 300% 100%;
-  background-clip: text;
-  color: transparent;
-  animation: shine 4s ease-in-out infinite;
+  color: #fff;
   filter: drop-shadow(0 0 30px rgba(56, 225, 255, 0.35));
 }
-.title span { display: block; color: transparent; }
+/* Kinetic title: letters drop in one by one; the second word is outlined. */
+.title .word { display: block; }
+.title .ch { display: inline-block; animation: ch-in 0.6s cubic-bezier(0.2, 1.3, 0.4, 1) both; animation-delay: calc(var(--i) * 45ms + 150ms); }
+.title .w1 .ch { color: transparent; -webkit-text-stroke: 2px var(--accent); }
+@keyframes ch-in { from { opacity: 0; transform: translateY(60%) rotate(8deg) scale(0.8); } }
 .tagline { font-size: 1.4rem; margin: 6px 0 4px; }
-@keyframes shine { 0%, 40% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+.sticker {
+  display: inline-block;
+  padding: 4px 14px;
+  background: var(--volt);
+  color: #1a1400;
+  font-weight: 700;
+  transform: rotate(-3deg);
+  box-shadow: 4px 4px 0 var(--accent-2);
+}
+
+/* Marquee tapes, like event-venue barrier tape. */
+.tape {
+  position: fixed;
+  left: -10vw;
+  right: -10vw;
+  z-index: 0;
+  padding: 10px 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  pointer-events: none;
+}
+.tape-a { top: 5vh; transform: rotate(-3deg); background: var(--accent); color: #04111d; }
+.tape-b { bottom: 5vh; transform: rotate(2deg); color: var(--accent-2); border-block: 2px solid var(--accent-2); background: rgba(6, 10, 20, 0.7); }
+.tape-track { display: inline-flex; animation: marquee 40s linear infinite; }
+.tape-b .tape-track { animation-direction: reverse; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+.watermark {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  font-size: 42vw;
+  font-weight: 700;
+  font-style: italic;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(124, 92, 255, 0.18);
+  pointer-events: none;
+  animation: screen-in 1.2s ease-out;
+}
 
 .primary {
   position: relative;
@@ -108,6 +179,15 @@ button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
   transition: transform 0.15s;
 }
 .primary:hover { transform: scale(1.05); }
+.primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.7) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: sheen 2.6s ease-in-out infinite;
+}
+@keyframes sheen { 60%, 100% { transform: translateX(100%); } }
 @keyframes breathe { 50% { filter: brightness(1.25) drop-shadow(0 0 18px var(--accent)); } }
 
 .top { margin: 0 auto; max-width: 420px; }
@@ -188,7 +268,26 @@ button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 .options .card { animation: deal-in 0.4s ease-out both; transition: transform 0.15s, box-shadow 0.15s; }
 .options .card:nth-child(2) { animation-delay: 60ms; }
 .options .card:nth-child(3) { animation-delay: 120ms; }
-.options .card:hover { transform: translateY(-6px); box-shadow: 0 0 46px -6px var(--c), inset 0 0 40px -16px var(--c); }
+.options .card:hover {
+  transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-6px);
+  box-shadow: 0 0 46px -6px var(--c), inset 0 0 40px -16px var(--c);
+}
+
+/* Particle burst on a correct pick. */
+.burst { position: fixed; z-index: 5; width: 0; height: 0; pointer-events: none; }
+.burst i {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px;
+  border-radius: 2px;
+  background: var(--right);
+  box-shadow: 0 0 12px var(--right);
+  transform: rotate(var(--a)) translateX(0);
+  animation: spark 0.6s ease-out forwards;
+}
+.burst i:nth-child(even) { background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+@keyframes spark { to { transform: rotate(var(--a)) translateX(150px) scale(0.3); opacity: 0; } }
 @keyframes deal-in { from { opacity: 0; transform: translateY(40px) rotate(-3deg); } }
 
 .options .right { --c: var(--right); animation: pop 0.35s ease-out; background: linear-gradient(rgba(61, 220, 132, 0.35), var(--panel)) padding-box, linear-gradient(var(--right), var(--right)) border-box; }
@@ -211,15 +310,16 @@ button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 
 .callout {
   position: absolute;
-  left: 50%;
-  top: 46%;
+  /* Starts just right of the 240px enemy card, so it never covers card text. */
+  left: calc(50% + 150px);
+  top: 30%;
   font-size: 2.6rem;
   font-weight: 700;
   font-style: italic;
   text-transform: uppercase;
   pointer-events: none;
   opacity: 0;
-  transform: translateX(-50%);
+  transform-origin: left center;
   white-space: nowrap;
 }
 .callout.good { color: var(--right); text-shadow: 0 0 20px var(--right); }
@@ -227,9 +327,9 @@ button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 .callout.bad { color: var(--wrong); text-shadow: 0 0 20px var(--wrong); }
 .callout.show { animation: rise 0.8s ease-out; }
 @keyframes rise {
-  from { opacity: 0; transform: translate(-50%, 20px) scale(0.6); }
-  25% { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
-  to { opacity: 0; transform: translate(-50%, -50px) scale(1); }
+  from { opacity: 0; transform: translateY(20px) scale(0.6); }
+  25% { opacity: 1; transform: translateY(0) scale(1.1); }
+  to { opacity: 0; transform: translateY(-50px) scale(1); }
 }
 
 /* ---------- Result ---------- */

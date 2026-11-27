@@ -23,10 +23,14 @@ const IDLE_MS = 15_000
 const FEEDBACK_MS = 350
 const COUNT_UP_MS = 900
 const LOW_TIME_RATIO = 0.35
+const BURST_PARTICLES = 16
+const TILT_DEG = 14
+const TAPE_TEXT = "Draft Dash ✦ Pick the counter ✦ 90 seconds ✦ Beat today's top score ✦ "
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 const app = document.querySelector<HTMLDivElement>('#app')!
+const wipe = document.querySelector<HTMLDivElement>('.wipe')!
 document.addEventListener('contextmenu', (e) => e.preventDefault())
 
 // Every screen gets its own AbortController: leaving a screen removes its listeners and
@@ -37,6 +41,8 @@ let current: ScreenName = 'attract'
 function enterScreen(name: ScreenName, html: string): AbortSignal {
   screen.abort()
   screen = new AbortController()
+  // No wipe into play: it would hide the first round while its timer runs.
+  if (name !== current && name !== 'play') pulse(wipe, 'go')
   current = name
   app.innerHTML = html
   return screen.signal
@@ -84,6 +90,34 @@ function scoreList(limit: number): string {
     .join('')}</ol>`
 }
 
+const tapes = () =>
+  ['tape-a', 'tape-b']
+    .map(
+      (cls) =>
+        `<div class="tape ${cls}" aria-hidden="true"><div class="tape-track"><span>${TAPE_TEXT.repeat(4)}</span><span>${TAPE_TEXT.repeat(4)}</span></div></div>`,
+    )
+    .join('')
+
+const kineticTitle = (words: string[]) =>
+  `<h1 class="title" aria-label="${words.join(' ')}"><span aria-hidden="true">${words
+    .map(
+      (word, w) =>
+        `<span class="word w${w}">${[...word].map((ch, i) => `<span class="ch" style="--i:${w * 5 + i}">${ch}</span>`).join('')}</span>`,
+    )
+    .join('')}</span></h1>`
+
+/** Spray particles from the centre of an element; the layer removes itself when done. */
+function burst(from: HTMLElement) {
+  const r = from.getBoundingClientRect()
+  const layer = document.createElement('div')
+  layer.className = 'burst'
+  layer.style.left = `${r.left + r.width / 2}px`
+  layer.style.top = `${r.top + r.height / 2}px`
+  layer.innerHTML = Array.from({ length: BURST_PARTICLES }, (_, i) => `<i style="--a:${(360 / BURST_PARTICLES) * i}deg"></i>`).join('')
+  layer.addEventListener('animationend', () => layer.remove(), { once: true })
+  app.append(layer)
+}
+
 const heroCard = (h: Hero) =>
   `<span class="icon">${sigil(h.element)}</span><span class="name">${h.name}</span><span class="el">${h.element}</span>`
 
@@ -91,9 +125,10 @@ function showAttract() {
   const signal = enterScreen(
     'attract',
     `
+    ${tapes()}
     <main class="screen attract">
-      <p class="kicker">Booth challenge</p>
-      <h1 class="title">Draft<span>Dash</span></h1>
+      <p class="kicker sticker">Booth challenge</p>
+      ${kineticTitle(['Draft', 'Dash'])}
       <p class="tagline">${SESSION_MS / 1000} seconds to out-draft the enemy coach.</p>
       ${cycleRow()}
       <button class="primary" id="start">Click to play</button>
@@ -197,6 +232,7 @@ function startGame() {
 
     if (correct) {
       sfx.right()
+      burst(buttons[pickIndex!])
       pulse($('#score'), 'bump')
       const multiplier = comboMultiplier(session.streak)
       if (multiplier > comboMultiplier(before.streak)) {
@@ -225,6 +261,18 @@ function startGame() {
     'keydown',
     (e) => {
       if (['1', '2', '3'].includes(e.key)) resolve(Number(e.key) - 1)
+    },
+    { signal },
+  )
+  // 3D tilt: the hovered card leans toward the mouse.
+  $('#options').addEventListener(
+    'pointermove',
+    (e) => {
+      const card = (e.target as HTMLElement).closest<HTMLElement>('.card')
+      if (!card) return
+      const r = card.getBoundingClientRect()
+      card.style.setProperty('--rx', `${((e.clientY - r.top) / r.height - 0.5) * -TILT_DEG}deg`)
+      card.style.setProperty('--ry', `${((e.clientX - r.left) / r.width - 0.5) * TILT_DEG}deg`)
     },
     { signal },
   )
@@ -273,6 +321,7 @@ function showResult(score: number) {
   const signal = enterScreen(
     'result',
     `
+    <div class="watermark" aria-hidden="true">GG</div>
     <main class="screen result">
       <p class="kicker">Final score</p>
       <h1 class="score-big" id="final">0</h1>
@@ -347,8 +396,9 @@ function showResult(score: number) {
 function showLeaderboard() {
   enterScreen(
     'board',
-    `<main class="screen board">
-      <p class="kicker">Draft Dash</p>
+    `${tapes()}
+    <main class="screen board">
+      <p class="kicker sticker">Draft Dash</p>
       <h1 class="title">Today's Top 10</h1>
       ${scoreList(10)}
     </main>`,
