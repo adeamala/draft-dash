@@ -37,3 +37,6 @@ tmp
 
 # Locally rendered demo videos (uploaded to YouTube, not committed)
 video/
+
+# Local Devpost drafts (submitted on Devpost, not part of the game)
+SUBMISSION.md
