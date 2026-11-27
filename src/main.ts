@@ -171,6 +171,10 @@ function startGame() {
     'play',
     `
     <main class="screen play">
+      <div class="target" id="target">
+        <span id="target-label"></span>
+        <div class="target-bar"><i id="target-fill"></i></div>
+      </div>
       <header class="hud">
         <div class="hud-cell"><small>Time</small><b id="time"></b></div>
         <div class="hud-cell"><small>Score</small><b id="score">0</b></div>
@@ -189,15 +193,23 @@ function startGame() {
 
   let session: Session = newSession(performance.now())
   const picks: Pick[] = []
-  const finish = () => showResult(session.score, summarize(picks))
+  // Today's #1 is the live target, so every run is a duel with the day's champion.
+  const best = loadScores()[0]
+  let beaten = false
+  const finish = () => showResult(session.score, summarize(picks), session.score > (best?.score ?? 0))
   let round: Round
   let roundStart = 0
   let locked = false
+
+  // Initials are validated to A-Z/? by loadScores, so they are safe to inline.
+  $('#target-label').innerHTML = best ? `Beat <b>${best.initials}</b> · ${best.score}` : "Set today's first score"
+  $('#target').classList.toggle('empty', !best)
 
   const updateHud = () => {
     $('#score').textContent = String(session.score)
     $('#combo').textContent = `x${comboMultiplier(session.streak)}`
     $('#lives').textContent = '♥'.repeat(Math.max(0, session.lives))
+    if (best) $('#target-fill').style.width = `${Math.min(100, (session.score / Math.max(1, best.score)) * 100)}%`
   }
 
   const callout = (text: string, kind: 'good' | 'combo' | 'bad') => {
@@ -253,6 +265,13 @@ function startGame() {
         pulse($('#combo'), 'bump')
       } else {
         callout(`+${session.score - before.score}`, 'good')
+      }
+      if (best && !beaten && session.score > best.score) {
+        beaten = true
+        $('#target').classList.add('beaten')
+        $('#target-label').textContent = 'New #1 today!'
+        callout('New #1!', 'combo')
+        sfx.gameOver()
       }
     } else {
       sfx.wrong()
@@ -334,7 +353,7 @@ const statsLine = (s: Summary) =>
     `Best streak ${s.bestStreak}`,
   ].join(' · ')
 
-function showResult(score: number, stats: Summary) {
+function showResult(score: number, stats: Summary, newDailyBest: boolean) {
   const letters = ['A', 'A', 'A']
   let cursor = 0
   sfx.gameOver()
@@ -343,7 +362,7 @@ function showResult(score: number, stats: Summary) {
     `
     <div class="watermark" aria-hidden="true">GG</div>
     <main class="screen result">
-      <p class="kicker">Final score</p>
+      ${newDailyBest && score > 0 ? '<p class="kicker sticker">New daily #1</p>' : '<p class="kicker">Final score</p>'}
       <h1 class="score-big" id="final">0</h1>
       <p class="stats">${statsLine(stats)}</p>
       <p class="label">Enter your initials</p>

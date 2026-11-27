@@ -214,6 +214,15 @@ button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 
 /* ---------- Play ---------- */
 .play { position: relative; }
+/* Live target: today's #1 score, so every run is a duel with the day's champion. */
+.target { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+.target b { color: var(--gold); }
+.target-bar { flex: 1; height: 8px; background: var(--panel); border-radius: 4px; overflow: hidden; }
+.target-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-2), var(--gold)); transition: width 0.3s ease-out; }
+.target.empty .target-bar { visibility: hidden; }
+.target.beaten { color: var(--gold); text-shadow: 0 0 14px var(--gold); animation: pop 0.4s ease-out; }
+.target.beaten .target-bar i { background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+
 .hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .hud-cell {
   padding: 8px 12px;

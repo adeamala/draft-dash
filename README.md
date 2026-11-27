@@ -2,7 +2,9 @@
 
 **90 seconds to out-draft the enemy coach.** A booth mini-game for the Cloud9 x JetBrains "Sky's The Limit" Hackathon 2026 (Category 3: Event Mini Game).
 
-**Play it:** https://adeamala.github.io/draft-dash/
+**Play it:** https://adeamala.github.io/draft-dash/ · **Demo video:** https://youtu.be/Fa_rnqwnufI
+
+![Draft Dash gameplay: passing today's #1](docs/gallery/gameplay.gif)
 
 | Counter-pick with combo | Ban phase flips the rule |
 |---|---|
@@ -17,6 +19,7 @@ Drafting is the strategy layer of esports that casual fans rarely see. Draft Das
 3. Faster picks score more; after 3 correct in a row, picks score x2; after 6, x3.
 4. **Ban rounds** (round 7, then every 4th round) flip the rule, like the pick/ban rhythm of a real draft: pick the hero the enemy *beats*. The screen turns red so you can't miss it.
 5. A wrong pick or a timeout costs one of 3 lives. The run ends after 90 seconds or 3 lost lives.
+6. **Beat today's #1:** a bar on top shows the day's best score and fills as you close in. Pass it and the screen calls out "NEW #1!".
 
 Shortcuts: `1` `2` `3` pick a card, `F` toggles fullscreen, `M` toggles sound (also as buttons on the start screen).
 
@@ -50,6 +53,7 @@ For the event, run `npm run build && npm run preview` once; the built game then 
 - [x] Leaderboard window (`#leaderboard`) synced offline, daily reset (`src/game/leaderboard.ts`)
 - [x] Booth mode: 15 s idle on the result screen saves as `???` and returns to attract; no context menu
 - [x] Ban rounds and skill stats (average decision time, accuracy, best streak) on the score screen
+- [x] Live "Beat today's #1" target bar and NEW #1 / NEW DAILY #1 callouts
 - [x] Fullscreen toggle
 - [x] Sound effects synthesized with the Web Audio API, with mute (`src/game/sound.ts`)
 
